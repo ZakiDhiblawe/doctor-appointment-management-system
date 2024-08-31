@@ -1,4 +1,3 @@
-```markdown
 # Doctor Appointment Management System
 
 ## Overview
