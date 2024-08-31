@@ -1,0 +1,21 @@
+/* Apply blue color to buttons */
+.btn-primary {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+/* Center the form */
+.form-container {
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+/* Footer styling */
+footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background-color: #f8f9fa;
+    padding: 20px 0;
+    text-align: center;
+}

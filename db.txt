@@ -1,0 +1,211 @@
+-- Drop tables if they exist
+BEGIN
+   EXECUTE IMMEDIATE 'DROP TABLE Appointments CASCADE CONSTRAINTS';
+EXCEPTION
+   WHEN OTHERS THEN
+      IF SQLCODE != -942 THEN
+         RAISE;
+      END IF;
+END;
+/
+
+BEGIN
+   EXECUTE IMMEDIATE 'DROP TABLE Patients CASCADE CONSTRAINTS';
+EXCEPTION
+   WHEN OTHERS THEN
+      IF SQLCODE != -942 THEN
+         RAISE;
+      END IF;
+END;
+/
+
+BEGIN
+   EXECUTE IMMEDIATE 'DROP TABLE Doctors CASCADE CONSTRAINTS';
+EXCEPTION
+   WHEN OTHERS THEN
+      IF SQLCODE != -942 THEN
+         RAISE;
+      END IF;
+END;
+/
+
+-- Create Tables
+CREATE TABLE Patients (
+    PatientID NUMBER PRIMARY KEY,
+    Name VARCHAR2(100),
+    Email VARCHAR2(100),
+    Phone VARCHAR2(15)
+);
+
+CREATE TABLE Doctors (
+    DoctorID NUMBER PRIMARY KEY,
+    Name VARCHAR2(100),
+    Specialization VARCHAR2(100),
+    AvailableSlots VARCHAR2(1000)
+);
+
+CREATE TABLE Appointments (
+    AppointmentID NUMBER PRIMARY KEY,
+    PatientID NUMBER,
+    DoctorID NUMBER,
+    AppointmentDate DATE,
+    Status VARCHAR2(20),
+    CONSTRAINT fk_patient_appointments FOREIGN KEY (PatientID) REFERENCES Patients(PatientID),
+    CONSTRAINT fk_doctor_appointments FOREIGN KEY (DoctorID) REFERENCES Doctors(DoctorID)
+);
+
+-- Create Views
+CREATE OR REPLACE VIEW v_appointments AS
+SELECT a.AppointmentID, p.Name AS PatientName, d.Name AS DoctorName, a.AppointmentDate, a.Status
+FROM Appointments a
+JOIN Patients p ON a.PatientID = p.PatientID
+JOIN Doctors d ON a.DoctorID = d.DoctorID;
+
+-- Drop Sequences if they exist
+BEGIN
+   EXECUTE IMMEDIATE 'DROP SEQUENCE seq_patient_id';
+EXCEPTION
+   WHEN OTHERS THEN
+      IF SQLCODE != -2289 THEN
+         RAISE;
+      END IF;
+END;
+/
+
+BEGIN
+   EXECUTE IMMEDIATE 'DROP SEQUENCE seq_doctor_id';
+EXCEPTION
+   WHEN OTHERS THEN
+      IF SQLCODE != -2289 THEN
+         RAISE;
+      END IF;
+END;
+/
+
+BEGIN
+   EXECUTE IMMEDIATE 'DROP SEQUENCE seq_appointment_id';
+EXCEPTION
+   WHEN OTHERS THEN
+      IF SQLCODE != -2289 THEN
+         RAISE;
+      END IF;
+END;
+/
+
+-- Create Sequences
+CREATE SEQUENCE seq_patient_id START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE seq_doctor_id START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE seq_appointment_id START WITH 1 INCREMENT BY 1;
+
+-- Drop Procedures if they exist
+BEGIN
+   EXECUTE IMMEDIATE 'DROP PROCEDURE register_patient';
+EXCEPTION
+   WHEN OTHERS THEN
+      IF SQLCODE != -4043 THEN
+         RAISE;
+      END IF;
+END;
+/
+
+BEGIN
+   EXECUTE IMMEDIATE 'DROP PROCEDURE add_doctor';
+EXCEPTION
+   WHEN OTHERS THEN
+      IF SQLCODE != -4043 THEN
+         RAISE;
+      END IF;
+END;
+/
+
+BEGIN
+   EXECUTE IMMEDIATE 'DROP PROCEDURE schedule_appointment';
+EXCEPTION
+   WHEN OTHERS THEN
+      IF SQLCODE != -4043 THEN
+         RAISE;
+      END IF;
+END;
+/
+
+-- Create Procedures
+CREATE OR REPLACE PROCEDURE register_patient(
+    p_name IN VARCHAR2,
+    p_email IN VARCHAR2,
+    p_phone IN VARCHAR2
+) AS
+BEGIN
+    INSERT INTO Patients (PatientID, Name, Email, Phone)
+    VALUES (seq_patient_id.NEXTVAL, p_name, p_email, p_phone);
+END;
+/
+
+CREATE OR REPLACE PROCEDURE add_doctor(
+    d_name IN VARCHAR2,
+    d_specialization IN VARCHAR2,
+    d_available_slots IN VARCHAR2
+) AS
+BEGIN
+    INSERT INTO Doctors (DoctorID, Name, Specialization, AvailableSlots)
+    VALUES (seq_doctor_id.NEXTVAL, d_name, d_specialization, d_available_slots);
+END;
+/
+
+CREATE OR REPLACE PROCEDURE schedule_appointment(
+    p_patient_id IN NUMBER,
+    p_doctor_id IN NUMBER,
+    p_appointment_date IN DATE
+) AS
+BEGIN
+    INSERT INTO Appointments (AppointmentID, PatientID, DoctorID, AppointmentDate, Status)
+    VALUES (seq_appointment_id.NEXTVAL, p_patient_id, p_doctor_id, p_appointment_date, 'Scheduled');
+END;
+/
+
+-- Drop Trigger if it exists
+BEGIN
+   EXECUTE IMMEDIATE 'DROP TRIGGER trg_prevent_double_booking';
+EXCEPTION
+   WHEN OTHERS THEN
+      IF SQLCODE != -4080 THEN
+         RAISE;
+      END IF;
+END;
+/
+
+-- Create Trigger
+CREATE OR REPLACE TRIGGER trg_prevent_double_booking
+BEFORE INSERT ON Appointments
+FOR EACH ROW
+DECLARE
+    v_count NUMBER;
+BEGIN
+    SELECT COUNT(*)
+    INTO v_count
+    FROM Appointments
+    WHERE DoctorID = :NEW.DoctorID
+      AND AppointmentDate = :NEW.AppointmentDate
+      AND Status = 'Scheduled';
+    
+    IF v_count > 0 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'This doctor is already booked at this time.');
+    END IF;
+END;
+/
+
+CREATE OR REPLACE VIEW v_appointments AS
+SELECT
+    a.AppointmentID,
+    p.Name AS PatientName,
+    d.Name AS DoctorName,
+    a.AppointmentDate,
+    a.Status
+FROM
+    Appointments a
+JOIN
+    Patients p ON a.PatientID = p.PatientID
+JOIN
+    Doctors d ON a.DoctorID = d.DoctorID;
+
+
+
