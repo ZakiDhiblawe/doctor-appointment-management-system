@@ -40,7 +40,7 @@ The project directory contains the following files:
 1. **Clone the Repository**
 
    ```bash
-   git clone https://github.com/yourusername/doctor-appointment-management-system.git
+   git clone https://github.com/ZakiDhiblawe/doctor-appointment-management-system.git
    ```
     ```bash
    cd doctor-appointment-management-system
